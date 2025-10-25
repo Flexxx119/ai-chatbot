@@ -5,19 +5,19 @@ import dotenv from "dotenv";
 import Redis from "ioredis";
 import OpenAI from "openai";
 
-dotenv.config(); // Lädt Variablen aus .env
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 const port = 3000;
 
-// Redis konfigurieren (Upstash TLS-Connection)
+// Redis konfigurieren
 const redis = new Redis({
-  host: process.env.REDIS_HOST,       // z.B. intent-monarch-26607.upstash.io
-  port: process.env.REDIS_PORT,       // z.B. 6379
-  password: process.env.REDIS_PASSWORD,
-  tls: {}  // zwingend für Upstash, sonst schlägt die Verbindung fehl
+  host: process.env.REDIS_HOST || "localhost",
+  port: process.env.REDIS_PORT || 6379,
+  password: process.env.REDIS_PASSWORD || "",
+  tls: process.env.REDIS_TLS ? {} : undefined,
 });
 
 // OpenAI konfigurieren
@@ -101,6 +101,11 @@ app.post("/webhook", async (req, res) => {
     console.error("Fehler im Webhook:", error);
     res.status(500).send("Fehler im Chatbot-Server.");
   }
+});
+
+// --- Startseite Route hinzufügen ---
+app.get("/", (req, res) => {
+  res.send("✅ Chatbot läuft! Benutze den /webhook Endpunkt.");
 });
 
 app.listen(port, () => {
