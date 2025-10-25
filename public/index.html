@@ -173,7 +173,7 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
 
       try {
-        const res = await fetch(API_URL, {
+        const res = await fetch("https://ai-chatbot-1-k7sy.onrender.com/webhook", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({ message: text })
