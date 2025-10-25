@@ -5,19 +5,19 @@ import dotenv from "dotenv";
 import Redis from "ioredis";
 import OpenAI from "openai";
 
-dotenv.config();
+dotenv.config(); // Lädt Variablen aus .env
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 const port = 3000;
 
-// Redis konfigurieren
+// Redis konfigurieren (Upstash TLS-Connection)
 const redis = new Redis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || "",
-  tls: process.env.REDIS_TLS ? {} : undefined,
+  host: process.env.REDIS_HOST,       // z.B. intent-monarch-26607.upstash.io
+  port: process.env.REDIS_PORT,       // z.B. 6379
+  password: process.env.REDIS_PASSWORD,
+  tls: {}  // zwingend für Upstash, sonst schlägt die Verbindung fehl
 });
 
 // OpenAI konfigurieren
