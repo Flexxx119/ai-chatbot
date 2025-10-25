@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import Redis from "ioredis";
 import OpenAI from "openai";
@@ -10,23 +9,28 @@ import { fileURLToPath } from "url";
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+
+// --- CORS ---
+app.use(cors({
+  origin: "*",
+  methods: ["GET","POST"]
+}));
+
+// --- Body Parser ---
+app.use(express.json());
+
+// --- Port ---
 const port = process.env.PORT || 3000;
 
-// --- Pfad-Setup für statische Dateien ---
+// --- Pfad für statische Dateien ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Statische Dateien aus dem 'public'-Ordner ausliefern
 app.use(express.static(path.join(__dirname, "public")));
-
-// Root-Route liefert die index.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Redis konfigurieren
+// --- Redis ---
 const redis = new Redis({
   host: process.env.REDIS_HOST || "localhost",
   port: process.env.REDIS_PORT || 6379,
@@ -34,12 +38,10 @@ const redis = new Redis({
   tls: process.env.REDIS_TLS ? {} : undefined,
 });
 
-// OpenAI konfigurieren
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// --- OpenAI ---
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Maximal 10 letzte Nachrichten speichern
+// --- Chat-History Limit ---
 const MAX_HISTORY = 10;
 
 // --- Intent-Erkennung ---
@@ -50,76 +52,49 @@ function detectIntent(message) {
   return "allgemein";
 }
 
-// --- System-Prompts pro Intent ---
+// --- System Prompts ---
 const systemPrompts = {
-  preise: `
-Du bist ein professioneller, empathischer Sales-Chatbot.
-Antworten **klar & direkt** auf Fragen zu Preisen oder Paketen.
-Leite immer zu einem Call-to-Action (z. B. Termin buchen).
-Keine Emojis, kurze, präzise Sätze.
-  `,
-  termin: `
-Du bist ein professioneller AI-Assistant.
-Antworten freundlich & präzise, leite Nutzer zur Terminbuchung weiter.
-CTA klar & eindeutig.
-  `,
-  allgemein: `
-Du bist ein professioneller, empathischer KI-Chatbot für Influencer & Coaches.
-Antworten kurz, freundlich, professionell, hilfsbereit.
-Fallback: "Das prüfe ich gern."
-Keine Emojis.
-  `
+  preise: `Du bist ein professioneller Sales-Chatbot. Antwort kurz & direkt, immer CTA.`,
+  termin: `Du bist ein AI-Assistant. Antwort freundlich & leite zu Termin.`,
+  allgemein: `Du bist ein professioneller KI-Chatbot. Antwort hilfsbereit & kurz.`
 };
 
-// --- Webhook-Endpoint ---
+// --- Webhook ---
 app.post("/webhook", async (req, res) => {
   try {
     const userMessage = req.body.message || "Hallo Welt";
 
-    // Chat-History aus Redis laden
     let chatHistory = await redis.get("chatHistory");
     chatHistory = chatHistory ? JSON.parse(chatHistory) : [];
-
-    // Neue User-Nachricht hinzufügen
     chatHistory.push({ role: "user", content: userMessage });
 
-    // History begrenzen
-    if (chatHistory.length > MAX_HISTORY) {
+    if (chatHistory.length > MAX_HISTORY)
       chatHistory = chatHistory.slice(chatHistory.length - MAX_HISTORY);
-    }
 
-    // Intent erkennen
     const intent = detectIntent(userMessage);
     const systemPrompt = systemPrompts[intent];
 
-    // Anfrage an OpenAI
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...chatHistory
-      ],
+      messages: [{ role: "system", content: systemPrompt }, ...chatHistory],
     });
 
     const botMessage = response.choices[0].message.content;
-
-    // Bot-Nachricht zur History hinzufügen
     chatHistory.push({ role: "assistant", content: botMessage });
 
-    // Aktualisierte History speichern
     await redis.set("chatHistory", JSON.stringify(chatHistory));
 
     console.log("Antwort an Nutzer:", botMessage);
     res.json({ reply: botMessage });
-
-  } catch (error) {
-    console.error("Fehler im Webhook:", error);
-    res.status(500).send("Fehler im Chatbot-Server.");
+  } catch (err) {
+    console.error("Fehler im Webhook:", err);
+    res.status(500).json({ reply: "Fehler im Chatbot-Server." });
   }
 });
 
 // --- Server starten ---
 app.listen(port, () => {
-  console.log(`✅ Server läuft auf http://localhost:${port}`);
+  console.log(`✅ Server läuft auf Port ${port}`);
 });
+
 

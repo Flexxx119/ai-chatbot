@@ -145,7 +145,7 @@
     const inputEl = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
 
-    const API_URL = "https://ai-chatbot-1-k7sy.onrender.com/webhook"; // <--- Render Webhook-URL
+    const API_URL = "https://ai-chatbot-1-k7sy.onrender.com/webhook"; // <--- Webhook-URL für Render
 
     function appendMessage(sender, text) {
       const msg = document.createElement("div");
@@ -173,7 +173,7 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
 
       try {
-        const res = await fetch("https://ai-chatbot-1-k7sy.onrender.com/webhook", {
+        const res = await fetch(API_URL, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({ message: text })
@@ -200,6 +200,7 @@
   </script>
 </body>
 </html>
+
 
 
 
