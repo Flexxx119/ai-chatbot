@@ -115,7 +115,6 @@
       cursor: pointer;
     }
 
-    /* Ladeanimation */
     .loading-dots::after {
       content: '';
       display: inline-block;
@@ -134,9 +133,7 @@
 <body>
   <div class="chat-container">
     <div class="header">KI-Chatbot – Professionell & Direkt</div>
-
     <div id="messages"></div>
-
     <div class="input-area">
       <textarea id="userInput" placeholder="Nachricht schreiben..."></textarea>
       <button id="sendBtn">Senden</button>
@@ -147,6 +144,8 @@
     const messagesEl = document.getElementById("messages");
     const inputEl = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
+
+    const API_URL = "https://ai-chatbot-1-k7sy.onrender.com/webhook"; // <--- Render Webhook-URL
 
     function appendMessage(sender, text) {
       const msg = document.createElement("div");
@@ -159,7 +158,6 @@
       time.textContent = new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
       messagesEl.appendChild(time);
 
-      // Immer nach unten scrollen
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
@@ -169,14 +167,13 @@
       appendMessage("user", text);
       inputEl.value = "";
 
-      // Ladeanimation
       const loadingMsg = document.createElement("div");
       loadingMsg.className = "message bot loading-dots";
       messagesEl.appendChild(loadingMsg);
       messagesEl.scrollTop = messagesEl.scrollHeight;
 
       try {
-        const res = await fetch("https://ai-chatbot-1-k7sy.onrender.com/", {
+        const res = await fetch(API_URL, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({ message: text })
@@ -199,7 +196,6 @@
       }
     });
 
-    // Begrüßung
     appendMessage("bot", "Willkommen! Ich antworte professionell und direkt. Was möchtest du wissen?");
   </script>
 </body>
